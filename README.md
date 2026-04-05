@@ -1,6 +1,6 @@
 ![tmux-fingers](./logo.svg)
 
-![demo](https://github.com/Morantron/tmux-fingers/assets/3304507/cafe8877-1c98-41b1-bb65-b72129fea701)
+![demo](https://git.j4hangir.com/tmux/tmux-fingers/assets/3304507/cafe8877-1c98-41b1-bb65-b72129fea701)
 
 # Usage
 
@@ -43,7 +43,7 @@ While in **[fingers]** mode, you can use the following shortcuts:
 Add the following to your list of TPM plugins in `.tmux.conf`:
 
 ```tmux
-set -g @plugin 'Morantron/tmux-fingers'
+set -g @plugin 'tmux/tmux-fingers'
 ```
 
 Hit <kbd>prefix</kbd> + <kbd>I</kbd> to fetch and source the plugin. The first time you run it you'll be presented with a wizard to complete the installation. Depending on the platform, the wizard will offer the following installation methods:
@@ -57,7 +57,7 @@ Hit <kbd>prefix</kbd> + <kbd>I</kbd> to fetch and source the plugin. The first t
 Clone the repo:
 
 ```
-$ git clone https://github.com/Morantron/tmux-fingers ~/.tmux/plugins/tmux-fingers
+$ git clone https://git.j4hangir.com/tmux/tmux-fingers ~/.tmux/plugins/tmux-fingers
 ```
 
 Source it in your `.tmux.conf`:
@@ -400,4 +400,4 @@ plugins! :clap: :clap:
 
 # License
 
-[MIT](https://github.com/Morantron/tmux-fingers/blob/master/LICENSE)
+[MIT](https://git.j4hangir.com/tmux/tmux-fingers/blob/master/LICENSE)
