@@ -1,6 +1,14 @@
 stages:
+  - test
   - build
   - release
+
+test:
+  stage: test
+  image: crystallang/crystal:1.14
+  script:
+    - shards install
+    - crystal spec
 
 build:
   stage: build
