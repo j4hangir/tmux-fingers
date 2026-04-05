@@ -3,6 +3,7 @@ version: 2.6.3
 name: fingers
 authors:
 - Jorge Morante <jorge@morante.eu>
+- j4hangir <j4hangir@gmail.com>
 targets:
   tmux-fingers:
     main: src/fingers.cr
