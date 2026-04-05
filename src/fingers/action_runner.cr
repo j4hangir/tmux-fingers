@@ -149,6 +149,8 @@ module Fingers
 
     def program_exists?(program)
       Process.find_executable(program)
+    rescue File::AccessDeniedError
+      nil
     end
 
     def tmux
