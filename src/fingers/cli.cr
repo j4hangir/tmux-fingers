@@ -11,6 +11,7 @@ module Fingers
       add_command Fingers::Commands::SendInput.new
       add_command Fingers::Commands::Start.new
       add_command Fingers::Commands::Info.new
+      add_command Fingers::Commands::Patterns.new
     end
 
     def run(arguments, options) : Nil
@@ -31,3 +32,4 @@ end
 # fingers version
 # fingers send-input INPUT
 # fingers start --mode default|jump --pane #{pane_id}
+# fingers patterns

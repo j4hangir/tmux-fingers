@@ -34,6 +34,7 @@ class Fingers::Commands::LoadConfig < Cling::Command
     options = shell_safe_options
 
     user_defined_patterns = [] of Tuple(String, String)
+    disabled_builtins = Set(String).new
 
     Fingers.reset_config
 
@@ -80,14 +81,19 @@ class Fingers::Commands::LoadConfig < Cling::Command
         config.enable_bindings = to_bool(value)
       end
 
-      if option.match(/^pattern/) && !value.empty?
-        check_pattern!(value)
-        user_defined_patterns.push({ option.gsub(/^pattern_/, ""), value })
+      if option.match(/^pattern/)
+        name = option.gsub(/^pattern_/, "")
+        if value.empty?
+          disabled_builtins.add(name)
+        else
+          check_pattern!(value)
+          user_defined_patterns.push({ name, value })
+        end
       end
     end
 
     add_user_defined_patterns(user_defined_patterns)
-    add_builtin_patterns
+    add_builtin_patterns(disabled_builtins)
 
     config.alphabet = ::Fingers::Config::ALPHABET_MAP[Fingers.config.keyboard_layout].split("").reject do |char|
       char.match(DISALLOWED_CHARS)
@@ -109,18 +115,27 @@ class Fingers::Commands::LoadConfig < Cling::Command
     end
   end
 
-  def add_builtin_patterns
+  def add_builtin_patterns(disabled_builtins = Set(String).new)
     pattern_names = [] of String
 
     if config.enabled_builtin_patterns == "all"
       pattern_names = ::Fingers::Config::BUILTIN_PATTERNS.keys
+    elsif config.enabled_builtin_patterns == "none"
+      pattern_names = [] of String
     else
       pattern_names = config.enabled_builtin_patterns.split(",")
     end
 
     pattern_names.each do |name|
+      key = name.to_s
+      # Accept both the hyphenated builtin name and its underscore form
+      # (tmux options turn hyphens into underscores), so users can override
+      # or disable builtins like `git-status` via `@fingers-pattern-git-status`.
+      normalized = key.tr("-", "_")
+      next if disabled_builtins.includes?(key) || disabled_builtins.includes?(normalized)
+      next if config.patterns.has_key?(key) || config.patterns.has_key?(normalized)
       pattern = Fingers::Config::BUILTIN_PATTERNS[name]?
-      config.patterns[name.to_s] = pattern if pattern
+      config.patterns[key] = pattern if pattern
     end
   end
 

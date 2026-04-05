@@ -149,6 +149,31 @@ Patterns use [PCRE pattern syntax](https://www.pcre.org/original/doc/html/pcrepa
 
 If the introduced regex contains an error, an error will be shown when invoking the plugin.
 
+### Overriding or disabling a built-in pattern
+
+You can use the same `@fingers-pattern-<name>` option to override a built-in
+pattern by name, or set it to an empty string to disable one:
+
+```tmux
+# Override the built-in `digit` pattern to match any run of digits
+# (default is 4 or more).
+set -g @fingers-pattern-digit '\d+'
+
+# Disable the built-in `kubernetes` pattern entirely.
+set -g @fingers-pattern-kubernetes ''
+```
+
+Built-in names whose names contain hyphens (like `git-status`) are also
+accepted with underscores (`@fingers-pattern-git_status`), since tmux
+options normalize hyphens to underscores.
+
+To see the currently effective set of patterns (builtins + your overrides +
+your additions), run:
+
+```sh
+tmux-fingers patterns
+```
+
 ## @fingers-main-action
 
 `default: :copy:`
@@ -268,7 +293,11 @@ Show a message using `tmux display-message` notifying about the copied result.
 
 `default: all`
 
-A list of comma separated pattern names. Built-in patterns are the following:
+A list of comma separated pattern names, or one of the keywords `all` (every
+builtin) or `none` (start from an empty set and only use your own
+`@fingers-pattern-*` definitions).
+
+Built-in patterns are the following:
 
 | Name              | Description                                               | Example                                        |
 | ----------------- | --------------------------------------------------------- | ---------------------------------------------- |
