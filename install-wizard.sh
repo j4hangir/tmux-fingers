@@ -66,27 +66,36 @@ function download_binary() {
     exit 1
   fi
 
-  echo "Getting latest release..."
+  local project_api="https://git.j4hangir.com/api/v4/projects/tmux%2Ftmux-fingers"
+  local project_url="https://git.j4hangir.com/tmux/tmux-fingers"
 
-  response=$(curl -sS "https://git.j4hangir.com/api/v4/projects/tmux%2Ftmux-fingers/releases" 2>&1)
+  echo "Getting latest tag..."
 
-  if [[ -z "$response" || "$response" == "[]" ]]; then
-    echo "No releases found for tmux-fingers. Please try again later."
+  tags=$(curl -sSf "$project_api/repository/tags" 2>&1)
+
+  if [[ $? -ne 0 || -z "$tags" || "$tags" == "[]" ]]; then
+    echo "Could not fetch tags from $project_api/repository/tags"
+    echo "Response: $tags"
     exit 1
   fi
 
-  url=$(echo "$response" | grep -o '"direct_asset_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
+  tag=$(echo "$tags" | grep -o '"name":"[^"]*"' | head -1 | sed 's/"name":"\([^"]*\)"/\1/')
 
-  if [[ -z "$url" ]]; then
-    echo "Could not extract download URL from release data."
-    echo "Response: $response"
+  if [[ -z "$tag" ]]; then
+    echo "Could not extract tag name from tags response."
+    echo "Response: $tags"
     exit 1
   fi
 
-  echo "Downloading binary from $url"
+  url="$project_url/-/jobs/artifacts/$tag/raw/tmux-fingers?job=build"
+  echo "Downloading binary for $tag from $url"
 
-  # download binary to bin/tmux-fingers
-  curl -L $url -o $CURRENT_DIR/bin/tmux-fingers
+  # download binary to bin/tmux-fingers; --fail so we surface HTTP errors
+  if ! curl -sSfL "$url" -o "$CURRENT_DIR/bin/tmux-fingers"; then
+    echo "Failed to download binary. The CI build for $tag may still be running or may have failed."
+    echo "Check $project_url/-/pipelines"
+    exit 1
+  fi
   chmod a+x $CURRENT_DIR/bin/tmux-fingers
 
   echo "Download complete!"
