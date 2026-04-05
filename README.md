@@ -96,6 +96,8 @@ NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` 
 * [@fingers-enabled-builtin-patterns](#fingers-enabled-builtin-patterns)
 * [@fingers-use-system-clipboard](#fingers-use-system-clipboard)
 * [@fingers-enable-bindings](#fingers-enable-bindings)
+* [@fingers-match-colored](#fingers-match-colored)
+* [@fingers-match-colored-min-len](#fingers-match-colored-min-len)
 
 Recipes:
 
@@ -329,6 +331,39 @@ By default, tmux-fingers will bind to `prefix` + `@fingers-key` and `prefix` +
 other parts of your configuration.
 
 Check [recipes](#Recipes) for alternative ways to set up bindings.
+
+## @fingers-match-colored
+
+`default: 0`
+
+When enabled, tmux-fingers treats any run of text that the terminal
+rendered with a non-default foreground color as a yankable target, in
+addition to matches from regex patterns. Use this to hint over things
+like grep/ripgrep highlights, syntax-colored tokens, git diff additions,
+colored log levels, etc. — anything visually distinctive in the pane —
+without having to write a regex for every case.
+
+```tmux
+set -g @fingers-match-colored 1
+```
+
+Colored spans are merged with regex matches before hints are assigned.
+When a colored span overlaps a regex match, the regex wins (since it
+expresses more specific intent). Background color, bold, italic, and
+underline do not count; only foreground color.
+
+## @fingers-match-colored-min-len
+
+`default: 2`
+
+Minimum character length for a colored span to be hinted. Stops single
+colored characters — like a colored `>` prompt marker or a `*` bullet —
+from becoming hint noise. Has no effect unless
+[@fingers-match-colored](#fingers-match-colored) is enabled.
+
+```tmux
+set -g @fingers-match-colored-min-len 3
+```
 
 ## @fingers-cli
 

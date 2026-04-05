@@ -25,6 +25,8 @@ module Fingers
     property show_copied_notification : String
     property enabled_builtin_patterns : String
     property enable_bindings : Bool
+    property match_colored : Bool
+    property match_colored_min_len : Int32
 
     FORMAT_PRINTER = TmuxStylePrinter.new
 
@@ -86,6 +88,8 @@ module Fingers
       @show_copied_notification = "0",
       @enabled_builtin_patterns = "all",
       @enable_bindings = true,
+      @match_colored = false,
+      @match_colored_min_len = 2,
       @benchmark_mode = "0"
     )
     end

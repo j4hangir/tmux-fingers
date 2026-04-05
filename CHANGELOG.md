@@ -6,6 +6,11 @@
   set.
 * New `tmux-fingers patterns` subcommand prints the currently effective
   pattern map, marking each entry as builtin, override, or user.
+* New `@fingers-match-colored` option: when enabled, any run of text the
+  terminal rendered with a non-default foreground color becomes a yankable
+  target in addition to regex matches. Useful for hinting grep highlights,
+  syntax-colored tokens, git diff additions, etc. without writing a regex
+  for every case. Tunable via `@fingers-match-colored-min-len`.
 
 ## 2.6.2 - 15 Feb 2026
 

@@ -136,4 +136,82 @@ Changes not staged for commit:
     hinter.run
     hinter.run
   end
+
+  it "produces hints for colored spans" do
+    width = 100
+    output = TextOutput.new
+    alphabet = "asdf".split("")
+
+    # Stripped input: "prefix needle suffix"
+    # Colored span covers "needle" (chars 7..13)
+    input = ["prefix needle suffix"]
+    colored = [[{7, 13}]]
+
+    hinter = Fingers::Hinter.new(
+      input: input,
+      width: width,
+      patterns: [] of String,
+      state: ::Fingers::State.new,
+      alphabet: alphabet,
+      output: output,
+      colored_spans: colored,
+    )
+
+    hinter.run
+
+    # The colored span should have been assigned a hint and registered.
+    hits = hinter.@target_by_text.keys
+    hits.should contain("needle")
+  end
+
+  it "drops colored spans shorter than match_colored_min_len" do
+    width = 100
+    output = TextOutput.new
+    alphabet = "asdf".split("")
+
+    # Default min_len is 2, so a 1-char span should be ignored.
+    input = ["x y z"]
+    colored = [[{0, 1}, {2, 3}]]
+
+    hinter = Fingers::Hinter.new(
+      input: input,
+      width: width,
+      patterns: [] of String,
+      state: ::Fingers::State.new,
+      alphabet: alphabet,
+      output: output,
+      colored_spans: colored,
+    )
+
+    hinter.run
+
+    hinter.@target_by_text.should be_empty
+  end
+
+  it "prefers regex matches over overlapping colored spans" do
+    width = 100
+    output = TextOutput.new
+    alphabet = "asdf".split("")
+
+    # Regex matches "https://foo.com", color span covers the same region.
+    # Only the regex match should produce a hint (yanking the URL, not a
+    # duplicate color-span hint for the same text).
+    input = ["visit https://foo.com today"]
+    colored = [[{6, 21}]]
+
+    hinter = Fingers::Hinter.new(
+      input: input,
+      width: width,
+      patterns: [Fingers::Config::BUILTIN_PATTERNS["url"]],
+      state: ::Fingers::State.new,
+      alphabet: alphabet,
+      output: output,
+      colored_spans: colored,
+    )
+
+    hinter.run
+
+    hinter.@target_by_text.size.should eq 1
+    hinter.@target_by_text.keys.first.should eq "https://foo.com"
+  end
 end

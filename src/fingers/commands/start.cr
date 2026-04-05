@@ -4,6 +4,7 @@ require "../hinter"
 require "../view"
 require "../state"
 require "../input_socket"
+require "../ansi_scanner"
 require "../../tmux"
 
 module Fingers::Commands
@@ -281,11 +282,41 @@ module Fingers::Commands
         state: state,
         output: pane_printer,
         reuse_hints: mode != "jump",
+        colored_spans: colored_spans,
       )
     end
 
     private getter pane_contents : Array(String) do
-      tmux.capture_pane(target_pane, join: mode != "jump").split("\n")
+      scanned_lines[0]
+    end
+
+    private getter colored_spans : Array(Array(Tuple(Int32, Int32))) do
+      scanned_lines[1]
+    end
+
+    # Captures the pane once and, when @fingers-match-colored is enabled,
+    # strips ANSI escapes while recording where the foreground color was
+    # non-default. Otherwise captures plain text and returns empty spans.
+    private getter scanned_lines : Tuple(Array(String), Array(Array(Tuple(Int32, Int32)))) do
+      preserve = Fingers.config.match_colored
+      raw = tmux.capture_pane(
+        target_pane,
+        join: mode != "jump",
+        preserve_escapes: preserve,
+      ).split("\n")
+
+      if preserve
+        stripped = [] of String
+        spans = [] of Array(Tuple(Int32, Int32))
+        raw.each do |line|
+          result = ::Fingers::AnsiScanner.scan(line)
+          stripped << result.visible
+          spans << result.colored_spans
+        end
+        {stripped, spans}
+      else
+        {raw, Array(Array(Tuple(Int32, Int32))).new(raw.size) { [] of Tuple(Int32, Int32) }}
+      end
     end
 
     private getter view : View do

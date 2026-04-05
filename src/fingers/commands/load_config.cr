@@ -79,6 +79,10 @@ class Fingers::Commands::LoadConfig < Cling::Command
         config.enabled_builtin_patterns = value
       when "enable_bindings"
         config.enable_bindings = to_bool(value)
+      when "match_colored"
+        config.match_colored = to_bool(value)
+      when "match_colored_min_len"
+        config.match_colored_min_len = value.to_i? || 2
       end
 
       if option.match(/^pattern/)
