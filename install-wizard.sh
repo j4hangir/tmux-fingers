@@ -68,8 +68,7 @@ function download_binary() {
 
   echo "Getting latest release..."
 
-  # TODO use "latest" tag
-  url=$(curl -s "https://git.j4hangir.com/api/v1/repos/tmux/tmux-fingers/releases" | grep browser_download_url | head -1 | grep -o https://.*x86_64)
+  url=$(curl -s "https://git.j4hangir.com/api/v4/projects/tmux%2Ftmux-fingers/releases" | grep -o '"direct_asset_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
 
   echo "Downloading binary from $url"
 
