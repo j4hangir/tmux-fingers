@@ -43,7 +43,7 @@ While in **[fingers]** mode, you can use the following shortcuts:
 Add the following to your list of TPM plugins in `.tmux.conf`:
 
 ```tmux
-set -g @plugin 'tmux/tmux-fingers'
+set -g @plugin 'https://git.j4hangir.com/tmux/tmux-fingers'
 ```
 
 Hit <kbd>prefix</kbd> + <kbd>I</kbd> to fetch and source the plugin. The first time you run it you'll be presented with a wizard to complete the installation. Depending on the platform, the wizard will offer the following installation methods:
