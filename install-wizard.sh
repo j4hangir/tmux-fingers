@@ -68,14 +68,22 @@ function download_binary() {
 
   echo "Getting latest release..."
 
-  url=$(curl -s "https://git.j4hangir.com/api/v4/projects/tmux%2Ftmux-fingers/releases" | grep -o '"direct_asset_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
+  response=$(curl -sS "https://git.j4hangir.com/api/v4/projects/tmux%2Ftmux-fingers/releases" 2>&1)
 
-  echo "Downloading binary from $url"
-
-  if [[ -z "$url" ]]; then
-    echo "Could not find a release for tmux-fingers. Please try again later."
+  if [[ -z "$response" || "$response" == "[]" ]]; then
+    echo "No releases found for tmux-fingers. Please try again later."
     exit 1
   fi
+
+  url=$(echo "$response" | grep -o '"direct_asset_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
+
+  if [[ -z "$url" ]]; then
+    echo "Could not extract download URL from release data."
+    echo "Response: $response"
+    exit 1
+  fi
+
+  echo "Downloading binary from $url"
 
   # download binary to bin/tmux-fingers
   curl -L $url -o $CURRENT_DIR/bin/tmux-fingers
