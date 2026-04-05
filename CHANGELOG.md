@@ -1,3 +1,12 @@
+## 2.7.0 - 05 Apr 2026
+
+* User-defined patterns can now override or disable built-in patterns of the
+  same name. Set `@fingers-pattern-<name>` to override, or to an empty string
+  to disable. `@fingers-enabled-builtin-patterns none` starts from an empty
+  set.
+* New `tmux-fingers patterns` subcommand prints the currently effective
+  pattern map, marking each entry as builtin, override, or user.
+
 ## 2.6.2 - 15 Feb 2026
 
 * Fix line jumping and backdrop-style rendering issues related with tabs,
