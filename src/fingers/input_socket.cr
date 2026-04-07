@@ -1,9 +1,9 @@
-require "socket"
 require "./dirs"
 
 module Fingers
   class InputSocket
     @path : String
+    @fd : File | Nil
 
     def initialize(path = Fingers::Dirs::SOCKET_PATH.to_s)
       @path = path
@@ -11,42 +11,44 @@ module Fingers
 
     def on_input
       remove_socket_file
+      create_fifo
 
-      # If the CLI binary disappears (e.g. during a rebuild) no messages
-      # will ever arrive and the loop would hang forever, trapping the
-      # user in fingers mode.  A generous timeout lets the process clean
-      # up via the normal teardown path.
-      server.read_timeout = 2.minutes
+      # Open read-write so the read end never sees EOF when a writer
+      # disconnects — our own write fd keeps the pipe open.
+      # Non-blocking mode lets Crystal's event loop schedule other fibers
+      # while waiting for data.
+      @fd = File.open(path, "r+")
+      @fd.not_nil!.blocking = false
 
       loop do
-        socket = server.accept
-        message = socket.gets
-
-        yield (message || "")
+        line = @fd.not_nil!.gets
+        yield (line || "")
       end
-    rescue IO::TimeoutError
-      yield "exit"
+    ensure
+      @fd.try(&.close)
+      @fd = nil
     end
 
     def send_message(cmd)
-      socket = UNIXSocket.new(path)
-      socket.puts(cmd)
-      socket.close
+      File.open(path, "w") do |f|
+        f.puts(cmd)
+      end
     end
 
     def close
-      server.close
+      @fd.try(&.close)
+      @fd = nil
       remove_socket_file
     end
 
     private getter :path
 
-    def server
-      @server ||= UNIXServer.new(path)
+    private def create_fifo
+      Process.run("mkfifo", [path])
     end
 
     def remove_socket_file
-      `rm -rf #{path}`
+      File.delete(path) if File.exists?(path)
     end
   end
 end
