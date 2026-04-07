@@ -230,6 +230,10 @@ class Tmux
   def set_buffer(value, use_system_clipboard = true)
     return unless value
 
+    # Delete the current buffer so tmux always re-sends OSC 52 to the
+    # terminal, even when the new content is identical to the old one.
+    exec("delete-buffer") rescue nil
+
     if @version >= Tmux.tmux_version_to_semver("3.2") && use_system_clipboard
       args = ["load-buffer", "-w", "-"]
     else
