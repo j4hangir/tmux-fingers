@@ -246,7 +246,11 @@ class Fingers::Commands::LoadConfig < Cling::Command
   end
 
   def fingers_mode_bind(key, command)
-    `tmux bind-key -Tfingers "#{key}" run-shell -b "#{cli} send-input #{command}"`
+    # If the binary is missing (exit 127), fall back to restoring the root
+    # key-table so the user isn't trapped in fingers mode.  The trailing
+    # `true` ensures the overall command exits 0, suppressing tmux's
+    # "returned 127" error banner.
+    `tmux bind-key -Tfingers "#{key}" run-shell -b "#{cli} send-input #{command} || { tmux switch-client -T root; true; }"`
   end
 
   def cli
