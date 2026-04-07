@@ -114,7 +114,9 @@ module Fingers
     private def collect_matches_for(line : String, line_index : Int32) : Array(LineMatch)
       regex_matches = [] of LineMatch
       unless patterns.empty?
+        Log.debug { "line[#{line_index}] hex=#{line.bytes.map { |b| "%02x" % b }.join(" ")}" }
         line.scan(pattern) do |md|
+          Log.debug { "  match: \"#{md[0]}\" at #{md.begin(0)}..#{md.end(0)} hex=#{md[0].bytes.map { |b| "%02x" % b }.join(" ")}" }
           regex_matches << regex_to_line_match(md)
         end
       end
@@ -196,7 +198,11 @@ module Fingers
     end
 
     def pattern : Regex
-      @pattern ||= Regex.new("(#{patterns.join('|')})")
+      @pattern ||= begin
+        src = "(#{patterns.join('|')})"
+        Log.debug { "compiled pattern: #{src}" }
+        Regex.new(src)
+      end
     end
 
     def hints : Array(String)
