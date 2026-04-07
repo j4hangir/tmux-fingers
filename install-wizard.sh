@@ -2,6 +2,7 @@
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PLATFORM=$(uname -s)
+VERSION=$(grep '^version:' "$CURRENT_DIR/shard.yml" | awk '{print $2}')
 action=$1
 
 # set up exit trap
@@ -29,7 +30,7 @@ function finish {
 trap finish EXIT
 
 function install_from_source() {
-  echo "Installing from source..."
+  echo "Installing tmux-fingers v$VERSION from source..."
 
   # check if shards is installed
   if ! command -v shards >/dev/null 2>&1; then
@@ -49,7 +50,7 @@ function install_from_source() {
 }
 
 function install_with_brew() {
-  echo "Installing with brew..."
+  echo "Installing tmux-fingers v$VERSION with brew..."
   brew tap morantron/tmux-fingers
   brew install tmux-fingers
 
@@ -88,7 +89,7 @@ function download_binary() {
   fi
 
   url="$project_url/-/jobs/artifacts/$tag/raw/tmux-fingers?job=build"
-  echo "Downloading binary for $tag from $url"
+  echo "Installing tmux-fingers v$VERSION (binary: $tag)..."
 
   # download binary to bin/tmux-fingers; --fail so we surface HTTP errors
   if ! curl -sSfL "$url" -o "$CURRENT_DIR/bin/tmux-fingers"; then
@@ -141,7 +142,7 @@ function get_message() {
 
 }
 
-tmux display-menu -T "tmux-fingers" \
+tmux display-menu -T "tmux-fingers v$VERSION" \
   "" \
   "- " "" ""\
   "-  #[nodim,bold]Welcome to tmux-fingers! ✌️ " "" ""\
