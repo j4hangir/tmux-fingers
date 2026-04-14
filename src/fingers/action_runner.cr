@@ -28,13 +28,16 @@ module Fingers
       # If the pane's cwd was deleted while tmux is running (e.g. git
       # worktree removed, rebase, or a container rebuild), chdir fails
       # and kills us before teardown — which strands tmux in the fingers
-      # key-table.  Fall back to no chdir when the path is gone or
-      # unreadable.  Dir.exists? itself can raise File::AccessDeniedError
-      # on some filesystems, so swallow that too.
+      # key-table.  Strip the kernel's " (deleted)" annotation that
+      # tmux sometimes echoes verbatim, then fall back to a real dir
+      # when the path is gone.  We must pass *some* valid chdir even
+      # if our own cwd is bad, otherwise the child inherits the broken
+      # cwd and the spawn aborts before exec.  Dir.exists? itself can
+      # raise File::AccessDeniedError on some filesystems, so swallow.
       chdir = original_pane.pane_current_path.presence
-      if chdir
-        chdir = nil unless (Dir.exists?(chdir) rescue false)
-      end
+      chdir = chdir.sub(/ \(deleted\)\z/, "") if chdir
+      chdir = nil if chdir && !(Dir.exists?(chdir) rescue false)
+      chdir ||= ENV["HOME"]?.presence || "/tmp"
 
       cmd = Process.new(
         cmd_path,
@@ -129,34 +132,35 @@ module Fingers
     def system_copy_command
       return nil unless Fingers.config.use_system_clipboard
 
-      @system_copy_command ||= if program_exists?("cb")
-                                 "cb"
-                               elsif program_exists?("pbcopy")
-                                 if program_exists?("reattach-to-user-namespace")
-                                   "reattach-to-user-namespace"
-                                 else
-                                   "pbcopy"
-                                 end
-                               elsif program_exists?("clip.exe")
-                                 "cat | clip.exe"
-                               elsif program_exists?("wl-copy")
-                                 "wl-copy"
-                               elsif program_exists?("xclip")
-                                 "xclip -selection clipboard"
-                               elsif program_exists?("xsel")
-                                 "xsel -i --clipboard"
-                               elsif program_exists?("putclip")
-                                 "putclip"
+      # Use the absolute path returned by program_exists? so Process.new
+      # doesn't re-walk PATH internally — that lookup raises
+      # File::AccessDeniedError on unreadable PATH entries (e.g.
+      # /root/.local/bin for a non-root user) and aborts the spawn.
+      @system_copy_command ||= if path = program_exists?("cb")
+                                 path
+                               elsif path = program_exists?("pbcopy")
+                                 program_exists?("reattach-to-user-namespace") || path
+                               elsif path = program_exists?("clip.exe")
+                                 path
+                               elsif path = program_exists?("wl-copy")
+                                 path
+                               elsif path = program_exists?("xclip")
+                                 "#{path} -selection clipboard"
+                               elsif path = program_exists?("xsel")
+                                 "#{path} -i --clipboard"
+                               elsif path = program_exists?("putclip")
+                                 path
                                end
     end
 
     def system_open_command
-      @system_open_command ||= if program_exists?("cygstart")
-                                 "xargs cygstart"
-                               elsif program_exists?("xdg-open")
-                                 "xargs xdg-open"
-                               elsif program_exists?("open")
-                                 "xargs open"
+      xargs = program_exists?("xargs")
+      @system_open_command ||= if xargs && (path = program_exists?("cygstart"))
+                                 "#{xargs} #{path}"
+                               elsif xargs && (path = program_exists?("xdg-open"))
+                                 "#{xargs} #{path}"
+                               elsif xargs && (path = program_exists?("open"))
+                                 "#{xargs} #{path}"
                                end
     end
 
