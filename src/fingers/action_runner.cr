@@ -129,7 +129,9 @@ module Fingers
     def system_copy_command
       return nil unless Fingers.config.use_system_clipboard
 
-      @system_copy_command ||= if program_exists?("pbcopy")
+      @system_copy_command ||= if program_exists?("cb")
+                                 "cb"
+                               elsif program_exists?("pbcopy")
                                  if program_exists?("reattach-to-user-namespace")
                                    "reattach-to-user-namespace"
                                  else
