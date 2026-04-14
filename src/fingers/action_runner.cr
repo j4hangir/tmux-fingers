@@ -25,13 +25,24 @@ module Fingers
 
       cmd_path, *args = Process.parse_arguments(final_shell_command.not_nil!)
 
+      # If the pane's cwd was deleted while tmux is running (e.g. git
+      # worktree removed, rebase, or a container rebuild), chdir fails
+      # and kills us before teardown — which strands tmux in the fingers
+      # key-table.  Fall back to no chdir when the path is gone or
+      # unreadable.  Dir.exists? itself can raise File::AccessDeniedError
+      # on some filesystems, so swallow that too.
+      chdir = original_pane.pane_current_path.presence
+      if chdir
+        chdir = nil unless (Dir.exists?(chdir) rescue false)
+      end
+
       cmd = Process.new(
         cmd_path,
         args,
         input: :pipe,
         output: :pipe,
         error: File.open(::Fingers::Dirs::ROOT / "action-stderr", "a"),
-        chdir: original_pane.pane_current_path.presence,
+        chdir: chdir,
         env: action_env
       )
 
@@ -148,9 +159,19 @@ module Fingers
     end
 
     def program_exists?(program)
-      Process.find_executable(program)
-    rescue File::AccessDeniedError
-      nil
+      # Rescue the whole File::Error family.  Crystal's
+      # Process.find_executable calls File.info? on each PATH entry,
+      # which raises File::AccessDeniedError when a directory in PATH
+      # (e.g. /root/.local/bin for a non-root user) is unreadable.  A
+      # method-level rescue on the specific subclass was apparently not
+      # catching the exception in practice — an explicit begin/rescue
+      # block with the parent class is defensive and covers
+      # File::NotFoundError too.
+      begin
+        Process.find_executable(program)
+      rescue File::Error
+        nil
+      end
     end
 
     def tmux

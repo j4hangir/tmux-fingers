@@ -9,7 +9,11 @@ module Fingers
       @path = path
     end
 
-    def on_input
+    # Create the FIFO and open it, but don't start reading yet.  Split
+    # from on_input so callers can establish the IPC channel BEFORE
+    # flipping external state (e.g. tmux key-table) that must be undone
+    # on failure.
+    def prepare
       remove_socket_file
       create_fifo
 
@@ -19,10 +23,18 @@ module Fingers
       # while waiting for data.
       @fd = File.open(path, "r+")
       @fd.not_nil!.blocking = false
+    end
+
+    def on_input
+      prepare if @fd.nil?
 
       loop do
         line = @fd.not_nil!.gets
-        yield (line || "")
+        # gets returns nil only on EOF/error — with r+ we hold a
+        # write-end ourselves so EOF shouldn't happen.  If it does,
+        # avoid a tight busy-loop that burns CPU forever.
+        break if line.nil?
+        yield line
       end
     ensure
       @fd.try(&.close)
@@ -30,8 +42,18 @@ module Fingers
     end
 
     def send_message(cmd)
-      File.open(path, "w") do |f|
-        f.puts(cmd)
+      # O_WRONLY | O_NONBLOCK: if no reader is attached (e.g. main
+      # fingers process already died), open returns ENXIO immediately
+      # instead of blocking forever.  The caller's `|| switch-client -T
+      # root` fallback then fires and the user gets unstuck.
+      fd = LibC.open(path, LibC::O_WRONLY | LibC::O_NONBLOCK)
+      raise File::Error.from_errno("no reader on fifo", file: path) if fd < 0
+
+      file = IO::FileDescriptor.new(fd, blocking: true)
+      begin
+        file.puts(cmd)
+      ensure
+        file.close
       end
     end
 
@@ -44,7 +66,10 @@ module Fingers
     private getter :path
 
     private def create_fifo
-      Process.run("mkfifo", [path])
+      status = Process.run("mkfifo", [path])
+      unless status.success?
+        raise "mkfifo failed for #{path} (exit status #{status.exit_code})"
+      end
     end
 
     def remove_socket_file

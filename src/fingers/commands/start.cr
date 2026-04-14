@@ -98,15 +98,24 @@ module Fingers::Commands
 
       track_tmux_state
 
-      show_hints
+      # Any exception past this point (swap_panes, render, FIFO open
+      # failure, ActionRunner blowing up on an unreadable PATH entry or
+      # deleted pane cwd, etc.) must still run teardown — otherwise tmux
+      # is left with the fingers pane swapped in, prefix disabled, and
+      # key-table "fingers" active, which strands the user.
+      begin
+        show_hints
 
-      if Fingers.config.benchmark_mode == "1"
-        exit(0)
+        exit(0) if Fingers.config.benchmark_mode == "1"
+
+        handle_input
+        process_result
+      rescue e
+        Log.error { "unexpected error in start: #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}" }
+        teardown rescue nil
+      else
+        teardown
       end
-
-      handle_input
-      process_result
-      teardown
     end
 
     private def patterns_from_options(pattern_names_option : String)
@@ -195,6 +204,12 @@ module Fingers::Commands
 
     private def handle_input
       input_socket = InputSocket.new
+
+      # Create and open the FIFO BEFORE touching tmux state.  If this
+      # fails (e.g. mkfifo can't run, state dir gone) we must not have
+      # already switched the client into the fingers key-table — the
+      # user would be stranded with no working keys.
+      input_socket.prepare
 
       tmux.disable_prefix
       tmux.set_key_table "fingers"
