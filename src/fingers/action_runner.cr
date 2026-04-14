@@ -136,9 +136,7 @@ module Fingers
       # doesn't re-walk PATH internally — that lookup raises
       # File::AccessDeniedError on unreadable PATH entries (e.g.
       # /root/.local/bin for a non-root user) and aborts the spawn.
-      @system_copy_command ||= if path = program_exists?("cb")
-                                 path
-                               elsif path = program_exists?("pbcopy")
+      @system_copy_command ||= if path = program_exists?("pbcopy")
                                  program_exists?("reattach-to-user-namespace") || path
                                elsif path = program_exists?("clip.exe")
                                  path
